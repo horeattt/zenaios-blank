@@ -137,16 +137,39 @@ function loadState() {
 }
 let saveTimer = 0;
 function collectionSnapshot() {
-  return { wards: state.wards, people: state.people, departments: state.departments, gestTypes: state.gestTypes, nomenclatoare: state.nomenclatoare || seedNomenclatoare(), hospital: state.hospital, integrations: state.integrations, synthetic: state.synthetic !== false };
+  return {
+    wards: state.wards,
+    people: state.people,
+    departments: state.departments,
+    gestTypes: state.gestTypes,
+    nomenclatoare: state.nomenclatoare || seedNomenclatoare(),
+    hospital: state.hospital,
+    integrations: state.integrations,
+    synthetic: state.synthetic !== false,
+    expectedVersion: state.collectionVersion || undefined
+  };
 }
 function persist() {
   const body = collectionSnapshot();
-  sessionStorage.setItem(KEY, JSON.stringify(body));
+  const local = { ...body };
+  delete local.expectedVersion;
+  sessionStorage.setItem(KEY, JSON.stringify(local));
   if (!live) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     fetch("/api/collection", { method: "PUT", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
-      .then(response => { if (!response.ok) toast("Salvarea în baza spitalului a eșuat.", "err"); })
+      .then(async response => {
+        const payload = await response.json().catch(() => ({}));
+        if (response.status === 409 && (payload.code === "stale_version" || payload.error === "stale_version")) {
+          toast(payload.message || "Altcineva a salvat între timp. Reîncărcați pagina.", "err");
+          return;
+        }
+        if (!response.ok) {
+          toast(payload.message || "Salvarea în baza spitalului a eșuat.", "err");
+          return;
+        }
+        if (payload.version != null) state.collectionVersion = payload.version;
+      })
       .catch(() => toast("Salvarea în baza spitalului a eșuat.", "err"));
   }, 400);
 }
@@ -192,8 +215,8 @@ function stamp(daysAgo, hour) {
 function nowStamp() { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; }
 function fmt(s) { if (!s) return "—"; const d = new Date(s); return d.toLocaleString("ro-RO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }); }
 function fmtDay(s) { if (!s) return "—"; return new Date(s).toLocaleDateString("ro-RO", { day: "2-digit", month: "long", year: "numeric" }); }
-function stayDays(iso) {
-  const a = new Date(iso), b = new Date();
+function stayDays(iso, until) {
+  const a = new Date(iso), b = until ? new Date(until) : new Date();
   a.setHours(0,0,0,0); b.setHours(0,0,0,0);
   return Math.max(1, Math.round((b - a) / 86400000) + 1);
 }
@@ -1026,7 +1049,7 @@ function pageHome() {
     ? ` Domeniu: ${ui.wardScopeIds?.length || 0} secții.`
     : (live ? " Acces pe tot spitalul." : "");
   return topHtml("Situație spital", "ZenAIos · Spital", "") + `<div class="content">
-    <p class="lead">Deschideți un card. Situația coboară pe secții. La DMS și ICM ajunge până la medic și la foaia pacientului.${scopeNote}</p>
+    <p class="lead">Deschideți un card. Ocuparea și DMS vin din foile reale; ICM și costurile rămân indisponibile până la DRG.${scopeNote}</p>
     <div class="stats">
       ${btn("beds", "Paturi libere", free, "pe ce secție sunt")}
       ${btn("admits", "Internări azi", admits, "interval: zi, săptămână, lună, an")}
@@ -1040,24 +1063,36 @@ function pageHome() {
   </div>`;
 }
 
-const WARD_KPI = {
-  cardio: { occ: "91%", dms: "6,2", icm: "2,4", cost: "−8%", occP: 91, dmsP: 62, icmP: 80, costP: 8, occRead: "În parametrii optimi", dmsRead: "Ușor peste țintă", icmRead: "În parametrii optimi", costRead: "Balanță negativă", occS: [86,88,87,90,89,91,92,90,93,91,90,92,94,91], dmsS: [5.4,5.5,5.6,5.7,5.9,6.0,6.1,6.2], icmS: [2.1,2.15,2.2,2.25,2.3,2.4], costS: [-5,-5,-6,-6,-7,-8] },
-  chir: { occ: "86%", dms: "7,4", icm: "2,3", cost: "−18%", occP: 86, dmsP: 74, icmP: 76, costP: 18, occRead: "În parametrii optimi", dmsRead: "Crescută cu 1,5%", icmRead: "În parametrii optimi", costRead: "Alertă financiară", occS: [90,88,87,85,84,86,83,85,87,86,84,85,86,86], dmsS: [6.4,6.6,6.8,6.9,7.0,7.2,7.3,7.4], icmS: [2.0,2.1,2.15,2.2,2.25,2.3], costS: [-12,-13,-14,-15,-16,-18] },
-  med: { occ: "84%", dms: "6,5", icm: "1,9", cost: "−10%", occP: 84, dmsP: 65, icmP: 63, costP: 10, occRead: "În parametrii optimi", dmsRead: "Ușor peste țintă", icmRead: "În parametrii optimi", costRead: "Balanță negativă", occS: [80,82,81,83,84,82,85,83,84,86,84,83,85,84], dmsS: [5.8,5.9,6.0,6.1,6.2,6.3,6.4,6.5], icmS: [1.7,1.75,1.8,1.85,1.9,1.9], costS: [-7,-8,-8,-9,-9,-10] }
-};
+function realOccPct(wards = visibleWards()) {
+  const beds = wards.reduce((n, w) => n + bedCount(w), 0);
+  const occ = wards.reduce((n, w) => n + occCount(w), 0);
+  return beds ? Math.round((occ / beds) * 100) : 0;
+}
+function realDms(wards = visibleWards()) {
+  const closed = wards.flatMap(w => (w.discharged || []).filter(p => p.admitted && p.discharged));
+  if (!closed.length) return null;
+  const days = closed.map(p => stayDays(p.admitted, p.discharged));
+  const avg = days.reduce((a, b) => a + b, 0) / days.length;
+  return Math.round(avg * 10) / 10;
+}
 function kpiLines(key) {
-  return state.wards.filter(w => WARD_KPI[w.id]).map(w => `<div class="sec">${esc(w.name)} <b>${WARD_KPI[w.id][key]}</b></div>`).join("");
+  return visibleWards().map(w => {
+    const pack = wardPack(w);
+    return `<div class="sec">${esc(w.name)} <b>${esc(pack[key])}</b></div>`;
+  }).join("");
 }
 function hospitalGauges() {
+  const occP = realOccPct();
+  const dms = realDms();
   const item = (id, tone, pct, value, title, hint, read) => `<button class="gauge ${tone}${ui.drill === id ? " on" : ""}" type="button" data-act="drill" data-id="${id}">
       <div class="donut ${tone}" style="--p:${pct}"><b>${value}</b></div>
       <div><h2>${title}</h2><div class="muted">${hint}</div><div class="read ${tone}">${read}</div></div>
     </button>`;
   return `<div class="block-label">Indicatori principali</div><div class="gauges">
-    ${item("occ", "ok", 87, "87%", "Grad de ocupare", "Spital · deschideți secțiile", "În parametrii optimi")}
-    ${item("dms", "warn", 67, "6,7", "DMS", "Pe secție, pe medic, pe foaie", "Crescută cu 1,5%")}
-    ${item("icm", "ok", 73, "2,2", "ICM", "Complexitatea cazului", "În parametrii optimi")}
-    ${item("cost", "bad", 12, "−12%", "Costuri / venituri", "Pe secție", "Balanță negativă · alertă financiară")}
+    ${item("occ", occP >= 90 ? "warn" : "ok", occP, occP + "%", "Grad de ocupare", "Din paturile deschise acum", occP ? "Calculat din census" : "Fără paturi în structură")}
+    ${item("dms", dms == null ? "ok" : dms > 7 ? "warn" : "ok", dms == null ? 0 : Math.min(100, Math.round(dms * 10)), dms == null ? "—" : String(dms).replace(".", ","), "DMS", "Din internările închise", dms == null ? "Indisponibil — fără externări" : "Calculat din foile închise")}
+    ${item("icm", "ok", 0, "—", "ICM", "Case-mix / DRG", "Indisponibil până la DRG")}
+    ${item("cost", "ok", 0, "—", "Costuri / venituri", "Contabilitate clinică", "Indisponibil până la DRG")}
   </div>`;
 }
 
@@ -1179,9 +1214,28 @@ function wardKpiFrame(w) {
   return `<div class="ward-kpis">${cell("ok", k.occP, k.occ, "Ocupare")}${cell("warn", k.dmsP, k.dms, "DMS")}${cell("ok", k.icmP, k.icm, "ICM")}${cell("bad", k.costP, k.cost, "Cost")}</div>`;
 }
 function wardPack(w) {
-  if (WARD_KPI[w.id]) return WARD_KPI[w.id];
-  const pct = Math.round((occupied(w).length / BEDS) * 100);
-  return { occ: pct + "%", dms: "5,4", icm: "1,2", cost: "−4%", occP: pct, dmsP: 54, icmP: 40, costP: 4, occRead: "Secție nouă", dmsRead: "Fără istoric", icmRead: "Fără istoric", costRead: "Fără istoric", occS: Array(14).fill(pct), dmsS: Array(8).fill(5.4), icmS: Array(6).fill(1.2), costS: Array(6).fill(-4) };
+  const n = Math.max(1, bedCount(w));
+  const pct = Math.round((occupied(w).length / n) * 100);
+  const dms = realDms([w]);
+  const dmsLabel = dms == null ? "—" : String(dms).replace(".", ",");
+  return {
+    occ: pct + "%",
+    dms: dmsLabel,
+    icm: "—",
+    cost: "—",
+    occP: pct,
+    dmsP: dms == null ? 0 : Math.min(100, Math.round(dms * 10)),
+    icmP: 0,
+    costP: 0,
+    occRead: "Din paturile secției",
+    dmsRead: dms == null ? "Fără externări" : "Din foi închise",
+    icmRead: "Indisponibil până la DRG",
+    costRead: "Indisponibil până la DRG",
+    occS: Array(14).fill(pct),
+    dmsS: Array(8).fill(dms == null ? 0 : dms),
+    icmS: Array(6).fill(0),
+    costS: Array(6).fill(0)
+  };
 }
 function magazieHtml(w) {
   const q = (ui.magQuery || "").trim().toLowerCase();
@@ -1899,21 +1953,29 @@ function writeLetterField(key, text, note) {
 function dischargeHtml(w, p) {
   const draft = ui.draft && ui.draft.patientId === p.id ? ui.draft : null;
   const dx = draft ? draft.dx : p.dx;
-  const secondary = draft ? draft.secondary : "";
+  const secondary = draft ? draft.secondary : (p.secondary || "");
   const epic = draft ? draft.epicrisis : epicrisis(p, w);
   const rec = draft ? draft.recommendations : (RECS[w.focus] || RECS.general);
+  const status = draft?.dischargeStatus || "ameliorat";
+  const type = draft?.dischargeType || "externat";
   const notes = (p.notes || []).slice().sort((a, b) => a.at.localeCompare(b.at));
   const last = notes[notes.length - 1];
   const open = p.studies.filter(s => s.status !== "finalizat").length;
   const done = p.studies.filter(s => s.status === "finalizat").length;
-  return `<div class="card"><div class="card-head"><h2>Externare</h2><span class="sub">Scrisoarea se compune din foaie</span></div><div class="card-body">
-    <p class="lead">Epicriza pornește din evoluția zilnică și din investigațiile deja trecute. O puteți corecta înainte de emitere. La emitere, patul se eliberează.</p>
+  const statusOpts = [["vindecat","Vindecat"],["ameliorat","Ameliorat"],["stationar","Staționar"],["agravat","Agravat"],["decedat","Decedat"]]
+    .map(([v, l]) => `<option value="${v}"${status === v ? " selected" : ""}>${l}</option>`).join("");
+  const typeOpts = [["externat","Externat"],["la_cerere","La cerere"],["transfer_interspitalicesc","Transfer interspitalicesc"],["deces","Deces"]]
+    .map(([v, l]) => `<option value="${v}"${type === v ? " selected" : ""}>${l}</option>`).join("");
+  return `<div class="card"><div class="card-head"><h2>Externare</h2><span class="sub">Pas final · eliberează patul</span></div><div class="card-body">
+    <p class="lead">Completați starea, tipul, diagnosticul și o epicriză de cel puțin 50 de caractere. La emitere, patul se eliberează și se salvează scrisoarea.</p>
     ${open ? `<div class="msg">${open} ${open === 1 ? "investigație este" : "investigații sunt"} încă în lucru. În scrisoare apar ca nefinalizate.</div>` : ""}
-    <div class="msg info">${notes.length} evoluții${last ? ` · ultima ${esc(fmt(last.at))}` : ""} · ${done} investigații finalizate · ${p.supplies.length} materiale descărcate. Medicul de gardă: ${esc(dutyName(w, "medic"))}.</div>
+    <div class="msg info">${notes.length} evoluții${last ? ` · ultima ${esc(fmt(last.at))}` : ""} · ${done} investigații finalizate · ${(p.supplies || []).length} materiale. Medic gardă: ${esc(dutyName(w, "medic"))}.</div>
     <div class="fields">
+      <div><label class="lbl" for="dx-status">Stare la externare <span class="req">*</span></label><select id="dx-status">${statusOpts}</select></div>
+      <div><label class="lbl" for="dx-type">Tip externare <span class="req">*</span></label><select id="dx-type">${typeOpts}</select></div>
       <div class="span-2"><label class="lbl" for="dx-out">Diagnostic de externare <span class="req">*</span></label><input id="dx-out" type="text" value="${esc(dx)}"></div>
-      <div class="span-2"><label class="lbl" for="dx-sec">Diagnostice secundare</label><input id="dx-sec" type="text" value="${esc(secondary)}" placeholder="Opțional"></div>
-      <div class="span-2"><label class="lbl" for="epic">Epicriză <span class="req">*</span></label><textarea id="epic">${esc(epic)}</textarea></div>
+      <div class="span-2"><label class="lbl" for="dx-sec">Diagnostice secundare</label><input id="dx-sec" type="text" value="${esc(secondary)}" placeholder="Opțional, ICD"></div>
+      <div class="span-2"><label class="lbl" for="epic">Epicriză <span class="req">*</span> <span class="muted">(min. 50 caractere)</span></label><textarea id="epic">${esc(epic)}</textarea></div>
       <div class="span-2"><label class="lbl" for="recs">Recomandări <span class="req">*</span></label><textarea id="recs">${esc(rec)}</textarea></div>
     </div>
     <div class="form-actions"><button class="btn" type="button" data-act="preview">Previzualizează scrisoarea</button><button class="btn btn-primary" type="button" data-act="emit">Emite și externează</button></div>
@@ -2338,6 +2400,9 @@ function transferPanelHtml(w, p) {
       </div>
       <div style="flex:1;min-width:160px"><label class="lbl" for="tr-bed">Pat liber</label>
         <select id="tr-bed">${free.map(b => `<option value="${b}">Salon ${Math.ceil(b / 4)} · Pat ${localPat(b)}</option>`).join("") || `<option value="">Niciun pat liber</option>`}</select>
+      </div>
+      <div style="flex:2;min-width:220px"><label class="lbl" for="tr-note">Notă de transfer <span class="req">*</span></label>
+        <input id="tr-note" type="text" placeholder="Motivul transferului (min. 8 caractere)" value="${esc(ui.transferNote || "")}">
       </div>
       <button class="btn btn-primary" type="button" data-act="transfer-go">Confirmă transferul</button>
       <button class="btn" type="button" data-act="transfer-cancel">Anulează</button>
@@ -3092,6 +3157,8 @@ function dischargeFields(p, w) {
     studies: cards.studies || "",
     treatment: cards.treat || "",
     state: cards.state || "",
+    dischargeStatus: cards.dischargeStatus || "ameliorat",
+    dischargeType: cards.dischargeType || "externat",
     recommendations: cards.recs || RECS[w.focus] || RECS.general
   };
   return {
@@ -3099,20 +3166,48 @@ function dischargeFields(p, w) {
     dx: val("dx-out") || p.dx,
     secondary: val("dx-sec"),
     epicrisis: val("epic") || epicrisis(p, w),
-    recommendations: val("recs") || RECS[w.focus] || RECS.general
+    recommendations: val("recs") || RECS[w.focus] || RECS.general,
+    dischargeStatus: val("dx-status") || "ameliorat",
+    dischargeType: val("dx-type") || "externat",
+    state: ({ vindecat: "vindecat", ameliorat: "ameliorat", stationar: "staționar", agravat: "agravat", decedat: "decedat" })[val("dx-status") || "ameliorat"] || "ameliorat"
   };
 }
 function commitDischarge() {
   const w = ward(), p = patient();
   if (!w || !p || p.status === "externat") return;
   const fields = dischargeFields(p, w);
-  if (!fields.dx || !fields.epicrisis || !fields.recommendations) { toast("Completați diagnosticul, epicriza și recomandările.", "err"); return; }
-  p.letter = { number: "SM-" + todayKey().replace(/-/g, "") + "-" + p.fileNo.slice(-3), issued: nowStamp(), dx: fields.dx, secondary: fields.secondary, history: fields.history || "", epicrisis: fields.epicrisis, studies: fields.studies || "", treatment: fields.treatment || "", state: fields.state || "", recommendations: fields.recommendations };
+  const missing = [];
+  if (!fields.dx || fields.dx.trim().length < 3) missing.push("diagnosticul");
+  if (!fields.epicrisis || fields.epicrisis.trim().length < 50) missing.push("epicriza (min. 50 caractere)");
+  if (!fields.recommendations || fields.recommendations.trim().length < 10) missing.push("recomandările");
+  if (!fields.dischargeStatus) missing.push("starea la externare");
+  if (!fields.dischargeType) missing.push("tipul externării");
+  if (missing.length) { toast("Completați: " + missing.join(", ") + ".", "err"); return; }
+  const openStudies = (p.studies || []).filter(s => s.status !== "finalizat");
+  if (openStudies.length) {
+    toast(`Mai sunt ${openStudies.length} investigații în lucru. Finalizați-le sau continuați doar după ce confirmați în epicriză.`, "err");
+  }
+  p.letter = {
+    number: "SM-" + todayKey().replace(/-/g, "") + "-" + String(p.fileNo || "").slice(-3),
+    issued: nowStamp(),
+    dx: fields.dx,
+    secondary: fields.secondary,
+    history: fields.history || "",
+    epicrisis: fields.epicrisis,
+    studies: fields.studies || "",
+    treatment: fields.treatment || "",
+    state: fields.state || fields.dischargeStatus,
+    dischargeStatus: fields.dischargeStatus,
+    dischargeType: fields.dischargeType,
+    recommendations: fields.recommendations
+  };
   p.dxAdmit = p.dxAdmit || p.dx;
   p.dx = fields.dx;
   p.dxCode = icdCode(fields.dx) || p.dxCode;
   p.secondary = fields.secondary || p.secondary;
-  p.status = "externat";
+  p.dischargeStatus = fields.dischargeStatus;
+  p.dischargeType = fields.dischargeType;
+  p.status = fields.dischargeType === "deces" || fields.dischargeStatus === "decedat" ? "decedat" : "externat";
   p.discharged = p.letter.issued;
   const bed = p.bed;
   p.bed = null;
@@ -3172,13 +3267,14 @@ function loadFromSystem() {
 }
 function nextFileNo(w) {
   const year = todayKey().slice(0, 4);
-  const tag = String(w.tag || w.id || "SEC").slice(0, 3).toUpperCase();
   let max = 0;
-  [...(w.patients || []), ...(w.discharged || [])].forEach(p => {
-    const m = String(p.fileNo || "").match(/(\d+)\s*$/);
-    if (m) max = Math.max(max, Number(m[1]));
+  (state.wards || []).forEach(ward => {
+    [...(ward.patients || []), ...(ward.discharged || [])].forEach(p => {
+      const m = String(p.fileNo || "").match(/FO-\d{4}-(\d+)/i) || String(p.fileNo || "").match(/(\d+)\s*$/);
+      if (m) max = Math.max(max, Number(m[1]));
+    });
   });
-  return "FO-" + year + "-" + tag + "-" + String(max + 1).padStart(3, "0");
+  return "FO-" + year + "-" + String(max + 1).padStart(6, "0");
 }
 function saveChart() {
   const p = patient();
@@ -3226,9 +3322,17 @@ function saveAdmit() {
     go({ admitStep: !last || !first || !parsed.ok ? 0 : 3 }, true);
     return;
   }
+  const cnpTaken = (state.wards || []).some(ward =>
+    [...(ward.patients || []), ...(ward.discharged || [])].some(p => p.cnp === cnp)
+  );
+  if (cnpTaken) {
+    toast("CNP-ul există deja în dosar. Deschideți foaia existentă.", "err");
+    go({ admitStep: 0 }, true);
+    return;
+  }
   const coded = !!icdCode(dx);
   const bed = Number(admitField("adm-bed"));
-  if (!freeBeds(w).includes(bed)) { toast("Patul nu mai este liber.", "err"); return; }
+  if (!freeBeds(w).includes(bed)) { toast("Patul este ocupat. Alegeți alt pat liber.", "err"); go({ admitStep: 3 }, true); return; }
   const sex = String(admitField("adm-sex", parsed.sex)) || parsed.sex;
   const birth = String(admitField("adm-birth")) || parsed.iso;
   const physician = String(admitField("adm-md")) || w.physicians[0] || w.chief;
@@ -4066,17 +4170,20 @@ function doTransfer() {
   const destId = val("tr-ward") || ui.transferWardId;
   const dest = state.wards.find(x => x.id === destId);
   const bed = Number(val("tr-bed"));
+  const note = val("tr-note");
   if (!dest) { toast("Alegeți secția destinație.", "err"); return; }
-  if (!bed || !freeBeds(dest).includes(bed)) { toast("Alegeți un pat liber pe destinație.", "err"); return; }
+  if (!bed || !freeBeds(dest).includes(bed)) { toast("Patul este ocupat sau lipsește. Alegeți un pat liber.", "err"); return; }
+  if (!note || note.length < 8) { toast("Nota de transfer este obligatorie (min. 8 caractere).", "err"); return; }
   w.patients = w.patients.filter(x => x.id !== p.id);
   p.bed = bed;
   p.notes = p.notes || [];
-  p.notes.unshift({ at: nowStamp(), author: p.physician || "Sistem", text: `Transfer din ${w.name} către ${dest.name}, pat ${pad(bed)}.` });
+  p.notes.unshift({ at: nowStamp(), author: p.physician || "Sistem", text: `Transfer din ${w.name} către ${dest.name}, pat ${pad(bed)}. ${note}` });
   p.transfers = p.transfers || [];
-  p.transfers.push({ at: nowStamp(), from: w.name, to: dest.name, bed });
+  p.transfers.push({ at: nowStamp(), from: w.name, to: dest.name, bed, note });
   dest.patients.push(p);
+  ui.transferNote = "";
   persist();
-  toast(`Pacient transferat pe ${dest.name}.`);
+  toast(`Pacient transferat pe ${dest.name}. Patul pe ${w.name} e liber.`);
   go({ page: "patient", wardId: dest.id, patientId: p.id, transferOpen: false }, true);
 }
 
@@ -4471,6 +4578,7 @@ async function bootCollection() {
     const me = await ensureSession();
     applySession(me);
     const saved = await apiJson("/api/collection");
+    state.collectionVersion = saved.version || 0;
     const document = typeof saved.document === "string" ? JSON.parse(saved.document) : saved.document;
     if (document && Array.isArray(document.wards)) applyCollection(document);
     else state.synthetic = true;

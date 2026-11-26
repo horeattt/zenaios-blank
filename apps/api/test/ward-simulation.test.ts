@@ -457,7 +457,13 @@ async function dischargeWithLetter(ward: WardBag, stay: Stay, day: number) {
 
   const discharged = await mustOk(app.inject({
     method: "POST", url: `/api/encounters/${stay.encounterId}/discharge`, headers: { cookie: physician.cookie },
-    payload: { summary }
+    payload: {
+      summary: summary.length >= 50 ? summary : `${summary} Evoluție favorabilă, fără complicații acute la externare.`,
+      dischargeStatus: "ameliorat",
+      dischargeType: "externat",
+      dxDisplay: dx,
+      recommendations: "Control la medicul de familie în 7 zile. Prezentare la urgență dacă starea se agravează."
+    }
   }));
 
   const doc = await mustOk(app.inject({

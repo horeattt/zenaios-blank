@@ -9,7 +9,7 @@
       "patient": "Radu Ana",
       "ward": "Cardiologie",
       "pathway": "ambulatory",
-      "body": "Scrisoare medicală\nPacient: Radu Ana\nSecție: Cardiologie\nCale de internare: Ambulator / programat\nDiagnostic la externare: I11.0 Boală cardiacă hipertensivă cu IC\nEvoluție: Ziua 1: evoluție favorabilă. Pacient Radu Ana. TA și puls monitorizate.\nInvestigații: Fără rezultate noi la externare.\nÎngrijiri: 1 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 1, medic curant Dr. Popa Mihai.",
+      "body": "Diagnostic: I11.0 Boală cardiacă hipertensivă cu IC\nStare: ameliorat\nTip: externat\nEpicriză:\nScrisoare medicală\nPacient: Radu Ana\nSecție: Cardiologie\nCale de internare: Ambulator / programat\nDiagnostic la externare: I11.0 Boală cardiacă hipertensivă cu IC\nEvoluție: Ziua 1: evoluție favorabilă. Pacient Radu Ana. TA și puls monitorizate.\nInvestigații: Fără rezultate noi la externare.\nÎngrijiri: 1 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 1, medic curant Dr. Popa Mihai.\nRecomandări:\nControl la medicul de familie în 7 zile. Prezentare la urgență dacă starea se agravează.",
       "ok": true,
       "issues": []
     },
@@ -17,7 +17,7 @@
       "patient": "Moldovan Gheorghe",
       "ward": "Cardiologie",
       "pathway": "upu",
-      "body": "Scrisoare medicală\nPacient: Moldovan Gheorghe\nSecție: Cardiologie\nCale de internare: UPU / urgență\nDiagnostic la externare: I21.4 Infarct miocardic acut subendocardic\nEvoluție: Ziua 1: evoluție favorabilă. Pacient Moldovan Gheorghe. TA și puls monitorizate.\nInvestigații: Potasiu 4.2 mmol/L\nÎngrijiri: 1 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 1, medic curant Dr. Popa Mihai.",
+      "body": "Diagnostic: I21.4 Infarct miocardic acut subendocardic\nStare: ameliorat\nTip: externat\nEpicriză:\nScrisoare medicală\nPacient: Moldovan Gheorghe\nSecție: Cardiologie\nCale de internare: UPU / urgență\nDiagnostic la externare: I21.4 Infarct miocardic acut subendocardic\nEvoluție: Ziua 1: evoluție favorabilă. Pacient Moldovan Gheorghe. TA și puls monitorizate.\nInvestigații: Potasiu 4.2 mmol/L\nÎngrijiri: 1 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 1, medic curant Dr. Popa Mihai.\nRecomandări:\nControl la medicul de familie în 7 zile. Prezentare la urgență dacă starea se agravează.",
       "ok": true,
       "issues": []
     },
@@ -25,7 +25,7 @@
       "patient": "Kiss Mihai",
       "ward": "Chirurgie generală",
       "pathway": "ambulatory",
-      "body": "Scrisoare medicală\nPacient: Kiss Mihai\nSecție: Chirurgie generală\nCale de internare: Ambulator / programat\nDiagnostic la externare: L02.2 Abces cutanat\nEvoluție: Ziua 1: evoluție cu ameliorare clinică. Pacient Kiss Mihai. TA și puls monitorizate.\nInvestigații: Fără rezultate noi la externare.\nÎngrijiri: 1 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 1, medic curant Dr. Luca Mihai.",
+      "body": "Diagnostic: L02.2 Abces cutanat\nStare: ameliorat\nTip: externat\nEpicriză:\nScrisoare medicală\nPacient: Kiss Mihai\nSecție: Chirurgie generală\nCale de internare: Ambulator / programat\nDiagnostic la externare: L02.2 Abces cutanat\nEvoluție: Ziua 1: evoluție cu ameliorare clinică. Pacient Kiss Mihai. TA și puls monitorizate.\nInvestigații: Fără rezultate noi la externare.\nÎngrijiri: 1 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 1, medic curant Dr. Luca Mihai.\nRecomandări:\nControl la medicul de familie în 7 zile. Prezentare la urgență dacă starea se agravează.",
       "ok": true,
       "issues": []
     },
@@ -33,7 +33,7 @@
       "patient": "Luca Ana",
       "ward": "Chirurgie generală",
       "pathway": "upu",
-      "body": "Scrisoare medicală\nPacient: Luca Ana\nSecție: Chirurgie generală\nCale de internare: UPU / urgență\nDiagnostic la externare: K35.8 Apendicită acută\nEvoluție: Ziua 1: evoluție cu ameliorare clinică. Pacient Luca Ana. TA și puls monitorizate.\nInvestigații: Fără rezultate noi la externare.\nÎngrijiri: 1 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 1, medic curant Dr. Luca Mihai.",
+      "body": "Diagnostic: K35.8 Apendicită acută\nStare: ameliorat\nTip: externat\nEpicriză:\nScrisoare medicală\nPacient: Luca Ana\nSecție: Chirurgie generală\nCale de internare: UPU / urgență\nDiagnostic la externare: K35.8 Apendicită acută\nEvoluție: Ziua 1: evoluție cu ameliorare clinică. Pacient Luca Ana. TA și puls monitorizate.\nInvestigații: Fără rezultate noi la externare.\nÎngrijiri: 1 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 1, medic curant Dr. Luca Mihai.\nRecomandări:\nControl la medicul de familie în 7 zile. Prezentare la urgență dacă starea se agravează.",
       "ok": true,
       "issues": []
     },
@@ -41,7 +41,7 @@
       "patient": "Suciu Andreea",
       "ward": "Cardiologie",
       "pathway": "ambulatory",
-      "body": "Scrisoare medicală\nPacient: Suciu Andreea\nSecție: Cardiologie\nCale de internare: Ambulator / programat\nDiagnostic la externare: I50.0 Insuficiență cardiacă congestivă\nEvoluție: Ziua 2: evoluție staționară. Pacient Suciu Andreea. TA și puls monitorizate. | Ziua 1: evoluție favorabilă. Pacient Suciu Andreea. TA și puls monitorizate.\nInvestigații: Potasiu 4.2 mmol/L\nÎngrijiri: 2 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 2, medic curant Dr. Popa Mihai.",
+      "body": "Diagnostic: I50.0 Insuficiență cardiacă congestivă\nStare: ameliorat\nTip: externat\nEpicriză:\nScrisoare medicală\nPacient: Suciu Andreea\nSecție: Cardiologie\nCale de internare: Ambulator / programat\nDiagnostic la externare: I50.0 Insuficiență cardiacă congestivă\nEvoluție: Ziua 2: evoluție staționară. Pacient Suciu Andreea. TA și puls monitorizate. | Ziua 1: evoluție favorabilă. Pacient Suciu Andreea. TA și puls monitorizate.\nInvestigații: Potasiu 4.2 mmol/L\nÎngrijiri: 2 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 2, medic curant Dr. Popa Mihai.\nRecomandări:\nControl la medicul de familie în 7 zile. Prezentare la urgență dacă starea se agravează.",
       "ok": true,
       "issues": []
     },
@@ -49,7 +49,7 @@
       "patient": "Nagy Paul",
       "ward": "Cardiologie",
       "pathway": "upu",
-      "body": "Scrisoare medicală\nPacient: Nagy Paul\nSecție: Cardiologie\nCale de internare: UPU / urgență\nDiagnostic la externare: I48.0 Fibrilație atrială paroxistică\nEvoluție: Ziua 2: evoluție staționară. Pacient Nagy Paul. TA și puls monitorizate. | Ziua 1: evoluție favorabilă. Pacient Nagy Paul. TA și puls monitorizate.\nInvestigații: Potasiu 4.2 mmol/L\nÎngrijiri: 2 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 2, medic curant Dr. Popa Mihai.",
+      "body": "Diagnostic: I48.0 Fibrilație atrială paroxistică\nStare: ameliorat\nTip: externat\nEpicriză:\nScrisoare medicală\nPacient: Nagy Paul\nSecție: Cardiologie\nCale de internare: UPU / urgență\nDiagnostic la externare: I48.0 Fibrilație atrială paroxistică\nEvoluție: Ziua 2: evoluție staționară. Pacient Nagy Paul. TA și puls monitorizate. | Ziua 1: evoluție favorabilă. Pacient Nagy Paul. TA și puls monitorizate.\nInvestigații: Potasiu 4.2 mmol/L\nÎngrijiri: 2 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 2, medic curant Dr. Popa Mihai.\nRecomandări:\nControl la medicul de familie în 7 zile. Prezentare la urgență dacă starea se agravează.",
       "ok": true,
       "issues": []
     },
@@ -57,7 +57,7 @@
       "patient": "Stan Gheorghe",
       "ward": "Chirurgie generală",
       "pathway": "ambulatory",
-      "body": "Scrisoare medicală\nPacient: Stan Gheorghe\nSecție: Chirurgie generală\nCale de internare: Ambulator / programat\nDiagnostic la externare: K80.0 Litiază biliară cu colecistită\nEvoluție: Ziua 2: evoluție favorabilă. Pacient Stan Gheorghe. TA și puls monitorizate. | Ziua 1: evoluție cu ameliorare clinică. Pacient Stan Gheorghe. TA și puls monitorizate.\nInvestigații: Potasiu 4.3999999999999995 mmol/L\nÎngrijiri: 2 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 2, medic curant Dr. Luca Mihai.",
+      "body": "Diagnostic: K80.0 Litiază biliară cu colecistită\nStare: ameliorat\nTip: externat\nEpicriză:\nScrisoare medicală\nPacient: Stan Gheorghe\nSecție: Chirurgie generală\nCale de internare: Ambulator / programat\nDiagnostic la externare: K80.0 Litiază biliară cu colecistită\nEvoluție: Ziua 2: evoluție favorabilă. Pacient Stan Gheorghe. TA și puls monitorizate. | Ziua 1: evoluție cu ameliorare clinică. Pacient Stan Gheorghe. TA și puls monitorizate.\nInvestigații: Potasiu 4.3999999999999995 mmol/L\nÎngrijiri: 2 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 2, medic curant Dr. Luca Mihai.\nRecomandări:\nControl la medicul de familie în 7 zile. Prezentare la urgență dacă starea se agravează.",
       "ok": true,
       "issues": []
     },
@@ -65,7 +65,7 @@
       "patient": "Mureșan Andreea",
       "ward": "Chirurgie generală",
       "pathway": "upu",
-      "body": "Scrisoare medicală\nPacient: Mureșan Andreea\nSecție: Chirurgie generală\nCale de internare: UPU / urgență\nDiagnostic la externare: K40.9 Hernie inghinală\nEvoluție: Ziua 2: evoluție favorabilă. Pacient Mureșan Andreea. TA și puls monitorizate. | Ziua 1: evoluție cu ameliorare clinică. Pacient Mureșan Andreea. TA și puls monitorizate.\nInvestigații: Potasiu 4.3999999999999995 mmol/L\nÎngrijiri: 2 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 2, medic curant Dr. Luca Mihai.",
+      "body": "Diagnostic: K40.9 Hernie inghinală\nStare: ameliorat\nTip: externat\nEpicriză:\nScrisoare medicală\nPacient: Mureșan Andreea\nSecție: Chirurgie generală\nCale de internare: UPU / urgență\nDiagnostic la externare: K40.9 Hernie inghinală\nEvoluție: Ziua 2: evoluție favorabilă. Pacient Mureșan Andreea. TA și puls monitorizate. | Ziua 1: evoluție cu ameliorare clinică. Pacient Mureșan Andreea. TA și puls monitorizate.\nInvestigații: Potasiu 4.3999999999999995 mmol/L\nÎngrijiri: 2 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 2, medic curant Dr. Luca Mihai.\nRecomandări:\nControl la medicul de familie în 7 zile. Prezentare la urgență dacă starea se agravează.",
       "ok": true,
       "issues": []
     },
@@ -73,7 +73,7 @@
       "patient": "Costea Maria",
       "ward": "Cardiologie",
       "pathway": "ambulatory",
-      "body": "Scrisoare medicală\nPacient: Costea Maria\nSecție: Cardiologie\nCale de internare: Ambulator / programat\nDiagnostic la externare: I20.0 Angină pectorală instabilă\nEvoluție: Ziua 3: evoluție cu ameliorare clinică. Pacient Costea Maria. TA și puls monitorizate. | Ziua 2: evoluție staționară. Pacient Costea Maria. TA și puls monitorizate.\nInvestigații: Potasiu 4.6 mmol/L\nÎngrijiri: 3 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 3, medic curant Dr. Popa Mihai.",
+      "body": "Diagnostic: I20.0 Angină pectorală instabilă\nStare: ameliorat\nTip: externat\nEpicriză:\nScrisoare medicală\nPacient: Costea Maria\nSecție: Cardiologie\nCale de internare: Ambulator / programat\nDiagnostic la externare: I20.0 Angină pectorală instabilă\nEvoluție: Ziua 3: evoluție cu ameliorare clinică. Pacient Costea Maria. TA și puls monitorizate. | Ziua 2: evoluție staționară. Pacient Costea Maria. TA și puls monitorizate.\nInvestigații: Potasiu 4.6 mmol/L\nÎngrijiri: 3 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 3, medic curant Dr. Popa Mihai.\nRecomandări:\nControl la medicul de familie în 7 zile. Prezentare la urgență dacă starea se agravează.",
       "ok": true,
       "issues": []
     },
@@ -81,7 +81,7 @@
       "patient": "Ionescu Maria",
       "ward": "Cardiologie",
       "pathway": "ambulatory",
-      "body": "Scrisoare medicală\nPacient: Ionescu Maria\nSecție: Cardiologie\nCale de internare: Ambulator / programat\nDiagnostic la externare: I11.0 Boală cardiacă hipertensivă cu IC\nEvoluție: Ziua 3: evoluție cu ameliorare clinică. Pacient Ionescu Maria. TA și puls monitorizate. | Ziua 2: evoluție staționară. Pacient Ionescu Maria. TA și puls monitorizate.\nInvestigații: Potasiu 5 mmol/L\nÎngrijiri: 2 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 3, medic curant Dr. Popa Mihai.",
+      "body": "Diagnostic: I11.0 Boală cardiacă hipertensivă cu IC\nStare: ameliorat\nTip: externat\nEpicriză:\nScrisoare medicală\nPacient: Ionescu Maria\nSecție: Cardiologie\nCale de internare: Ambulator / programat\nDiagnostic la externare: I11.0 Boală cardiacă hipertensivă cu IC\nEvoluție: Ziua 3: evoluție cu ameliorare clinică. Pacient Ionescu Maria. TA și puls monitorizate. | Ziua 2: evoluție staționară. Pacient Ionescu Maria. TA și puls monitorizate.\nInvestigații: Potasiu 5 mmol/L\nÎngrijiri: 2 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 3, medic curant Dr. Popa Mihai.\nRecomandări:\nControl la medicul de familie în 7 zile. Prezentare la urgență dacă starea se agravează.",
       "ok": true,
       "issues": []
     },
@@ -89,7 +89,7 @@
       "patient": "Toma Paul",
       "ward": "Chirurgie generală",
       "pathway": "ambulatory",
-      "body": "Scrisoare medicală\nPacient: Toma Paul\nSecție: Chirurgie generală\nCale de internare: Ambulator / programat\nDiagnostic la externare: K56.6 Ileus\nEvoluție: Ziua 3: evoluție staționară. Pacient Toma Paul. TA și puls monitorizate. | Ziua 2: evoluție favorabilă. Pacient Toma Paul. TA și puls monitorizate.\nInvestigații: Potasiu 5.199999999999999 mmol/L; Potasiu 4.3999999999999995 mmol/L\nÎngrijiri: 3 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 3, medic curant Dr. Luca Mihai.",
+      "body": "Diagnostic: K56.6 Ileus\nStare: ameliorat\nTip: externat\nEpicriză:\nScrisoare medicală\nPacient: Toma Paul\nSecție: Chirurgie generală\nCale de internare: Ambulator / programat\nDiagnostic la externare: K56.6 Ileus\nEvoluție: Ziua 3: evoluție staționară. Pacient Toma Paul. TA și puls monitorizate. | Ziua 2: evoluție favorabilă. Pacient Toma Paul. TA și puls monitorizate.\nInvestigații: Potasiu 5.199999999999999 mmol/L; Potasiu 4.3999999999999995 mmol/L\nÎngrijiri: 3 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 3, medic curant Dr. Luca Mihai.\nRecomandări:\nControl la medicul de familie în 7 zile. Prezentare la urgență dacă starea se agravează.",
       "ok": true,
       "issues": []
     },
@@ -97,10 +97,10 @@
       "patient": "Radu Ana",
       "ward": "Chirurgie generală",
       "pathway": "ambulatory",
-      "body": "Scrisoare medicală\nPacient: Radu Ana\nSecție: Chirurgie generală\nCale de internare: Ambulator / programat\nDiagnostic la externare: K80.0 Litiază biliară cu colecistită\nEvoluție: Ziua 3: evoluție staționară. Pacient Radu Ana. TA și puls monitorizate. | Ziua 2: evoluție favorabilă. Pacient Radu Ana. TA și puls monitorizate.\nInvestigații: Potasiu 4.8 mmol/L\nÎngrijiri: 2 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 3, medic curant Dr. Luca Mihai.",
+      "body": "Diagnostic: K80.0 Litiază biliară cu colecistită\nStare: ameliorat\nTip: externat\nEpicriză:\nScrisoare medicală\nPacient: Radu Ana\nSecție: Chirurgie generală\nCale de internare: Ambulator / programat\nDiagnostic la externare: K80.0 Litiază biliară cu colecistită\nEvoluție: Ziua 3: evoluție staționară. Pacient Radu Ana. TA și puls monitorizate. | Ziua 2: evoluție favorabilă. Pacient Radu Ana. TA și puls monitorizate.\nInvestigații: Potasiu 4.8 mmol/L\nÎngrijiri: 2 note de asistență pe foaie.\nTratament: conform foii de observație; continuă schema la domiciliu 7 zile.\nRecomandări: control la 7 zile; prezentare la urgență dacă starea se agravează.\nExternat în ziua de simulare 3, medic curant Dr. Luca Mihai.\nRecomandări:\nControl la medicul de familie în 7 zile. Prezentare la urgență dacă starea se agravează.",
       "ok": true,
       "issues": []
     }
   ],
-  "reportPath": "C:\\Users\\horea\\AppData\\Local\\Temp\\zenaios-sim-QAGlkU\\simulation-report.json"
+  "reportPath": "C:\\Users\\horea\\AppData\\Local\\Temp\\zenaios-sim-Vjc1wo\\simulation-report.json"
 }

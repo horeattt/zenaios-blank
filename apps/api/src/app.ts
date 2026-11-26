@@ -84,11 +84,33 @@ export async function buildApp(db: Db, config: AppConfig): Promise<FastifyInstan
   app.setErrorHandler((error, _request, reply) => {
     const named = error instanceof Error ? error.name : "";
     const explicit = (error as { statusCode?: number }).statusCode;
-    const status = explicit ?? (named === "ZodError" ? 422 : 500);
-    const message = error instanceof Error ? error.message : "Eroare.";
-    log(config, status >= 500 ? "server_error" : "request_error", { status, message: redact(message) });
+    const code = (error as { code?: string }).code;
+    const pgCode = (error as { code?: string }).code;
+    let status = explicit ?? (named === "ZodError" ? 422 : 500);
+    let message = error instanceof Error ? error.message : "Eroare.";
+    let errCode = code && !/^\d+$/.test(code) ? code : (status === 422 ? "invalid" : "error");
+    // Concurență / unicitate PostgreSQL → mesaje de flux, nu 500
+    if (pgCode === "23505") {
+      status = 409;
+      const detail = String((error as { detail?: string; constraint?: string }).constraint || (error as { detail?: string }).detail || "");
+      if (/one_active_occupant_per_bed|bed/i.test(detail)) {
+        errCode = "bed_occupied";
+        message = "Patul este ocupat.";
+      } else if (/patient_identifier|cnp/i.test(detail)) {
+        errCode = "cnp_exists";
+        message = "CNP-ul există deja în dosar.";
+      } else if (/admissions_file_no/i.test(detail)) {
+        errCode = "file_no_exists";
+        message = "Numărul de foaie există deja.";
+      } else {
+        errCode = "conflict";
+        message = "Înregistrarea există deja.";
+      }
+    }
+    log(config, status >= 500 ? "server_error" : "request_error", { status, message: redact(message), errCode });
     reply.code(status).send({
-      error: status === 422 ? "invalid" : "error",
+      error: errCode,
+      code: errCode,
       message: status >= 500 ? "Eroare internă." : named === "ZodError" ? "Date invalide." : message
     });
   });
@@ -578,7 +600,11 @@ export async function buildApp(db: Db, config: AppConfig): Promise<FastifyInstan
     const actor = requireUser(request);
     const hospitalId = requireHospital(request);
     const admissionId = param(request, "id");
-    const body = z.object({ wardId: z.string().uuid(), bedId: z.string().uuid() }).parse(request.body);
+    const body = z.object({
+      wardId: z.string().uuid(),
+      bedId: z.string().uuid(),
+      note: z.string().min(8).max(2000)
+    }).parse(request.body);
     return db.tx(async (q) => {
       const admission = await one<{ id: string; patient_id: string; current_ward_id: string; status: string }>(
         q, "SELECT id, patient_id, current_ward_id, status FROM admissions WHERE id = $1 AND hospital_id = $2", [admissionId, hospitalId]
@@ -586,15 +612,30 @@ export async function buildApp(db: Db, config: AppConfig): Promise<FastifyInstan
       if (admission.status !== "active") fail(409, "Internarea nu este activă.");
       await mustOwn(q, "wards", body.wardId, hospitalId);
       await one(q, "SELECT b.id FROM beds b JOIN rooms r ON r.id = b.room_id WHERE b.id = $1 AND b.hospital_id = $2 AND r.ward_id = $3", [body.bedId, hospitalId, body.wardId]);
+      const occupied = await q.query(
+        `SELECT a.id FROM admissions a
+         WHERE a.hospital_id = $1 AND a.bed_id = $2 AND a.status = 'active' AND a.id <> $3
+         LIMIT 1`,
+        [hospitalId, body.bedId, admissionId]
+      );
+      if (occupied.length) {
+        throw Object.assign(new Error("Patul este ocupat."), { statusCode: 409, code: "bed_occupied" });
+      }
       await q.query("UPDATE admissions SET current_ward_id = $3, bed_id = $4 WHERE id = $1 AND hospital_id = $2", [admissionId, hospitalId, body.wardId, body.bedId]);
       const transferId = newId();
       await q.query(
-        `INSERT INTO transfers (id, hospital_id, admission_id, patient_id, from_ward_id, to_ward_id, to_bed_id, moved_at, actor_user_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, now(), $8)`,
-        [transferId, hospitalId, admissionId, admission.patient_id, admission.current_ward_id, body.wardId, body.bedId, actor.id]
+        `INSERT INTO transfers (id, hospital_id, admission_id, patient_id, from_ward_id, to_ward_id, to_bed_id, moved_at, actor_user_id, note, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, now(), $8, $9, 'completed')`,
+        [transferId, hospitalId, admissionId, admission.patient_id, admission.current_ward_id, body.wardId, body.bedId, actor.id, body.note]
+      );
+      await q.query(
+        `INSERT INTO clinical_notes (id, hospital_id, patient_id, encounter_id, kind, body, author_user_id)
+         SELECT $1, $2, $3, a.encounter_id, 'transfer', $4, $5
+         FROM admissions a WHERE a.id = $6 AND a.hospital_id = $2`,
+        [newId(), hospitalId, admission.patient_id, `Transfer: ${body.note}`, actor.id, admissionId]
       );
       await writeAudit(q, { hospitalId, actorUserId: actor.id, action: "update", entityType: "admission", entityId: admissionId, summary: "Transfer între secții. Internarea inițială rămâne aceeași." });
-      return { transferId, patientId: admission.patient_id };
+      return { transferId, patientId: admission.patient_id, code: "ok" };
     });
   });
 
@@ -825,9 +866,29 @@ export async function buildApp(db: Db, config: AppConfig): Promise<FastifyInstan
           };
         }
       }
+      if (body.cnp) {
+        const dup = await q.query<{ patient_id: string }>(
+          `SELECT patient_id FROM patient_identifiers
+           WHERE hospital_id = $1 AND system = 'urn:cnas:cnp' AND value = $2 LIMIT 1`,
+          [hospitalId, body.cnp]
+        );
+        if (dup[0]) {
+          throw Object.assign(new Error("CNP-ul există deja. Deschideți dosarul existent."), {
+            statusCode: 409,
+            code: "cnp_exists"
+          });
+        }
+      }
       let bedId = body.bedId;
       if (bedId) {
         await one(q, "SELECT b.id FROM beds b JOIN rooms r ON r.id = b.room_id WHERE b.id = $1 AND b.hospital_id = $2 AND r.ward_id = $3 AND b.status = 'open'", [bedId, hospitalId, body.wardId]);
+        const taken = await q.query(
+          `SELECT a.id FROM admissions a WHERE a.hospital_id = $1 AND a.bed_id = $2 AND a.status = 'active' LIMIT 1`,
+          [hospitalId, bedId]
+        );
+        if (taken.length) {
+          throw Object.assign(new Error("Patul este ocupat."), { statusCode: 409, code: "bed_occupied" });
+        }
       } else {
         const free = await q.query<{ id: string }>(
           `SELECT b.id FROM beds b
@@ -838,8 +899,23 @@ export async function buildApp(db: Db, config: AppConfig): Promise<FastifyInstan
           [hospitalId, body.wardId]
         );
         bedId = free[0]?.id;
-        if (!bedId) fail(409, "Nu există pat liber pe această secție.");
+        if (!bedId) {
+          throw Object.assign(new Error("Nu există pat liber pe această secție."), { statusCode: 409, code: "no_free_bed" });
+        }
       }
+      const year = new Date().getFullYear();
+      const seqKey = `fo_${year}`;
+      await q.query(
+        `INSERT INTO hospital_sequences (hospital_id, seq_key, last_value)
+         VALUES ($1, $2, 1)
+         ON CONFLICT (hospital_id, seq_key) DO UPDATE SET last_value = hospital_sequences.last_value + 1`,
+        [hospitalId, seqKey]
+      );
+      const seqRows = await q.query<{ last_value: number }>(
+        "SELECT last_value FROM hospital_sequences WHERE hospital_id = $1 AND seq_key = $2",
+        [hospitalId, seqKey]
+      );
+      const fileNo = `FO-${year}-${String(seqRows[0]?.last_value || 1).padStart(6, "0")}`;
       const patientId = newId();
       const encounterId = newId();
       const admissionId = newId();
@@ -866,9 +942,9 @@ export async function buildApp(db: Db, config: AppConfig): Promise<FastifyInstan
         [encounterId, hospitalId, patientId]
       );
       await q.query(
-        `INSERT INTO admissions (id, hospital_id, encounter_id, patient_id, admitting_ward_id, current_ward_id, bed_id, started_at, status)
-         VALUES ($1, $2, $3, $4, $5, $5, $6, now(), 'active')`,
-        [admissionId, hospitalId, encounterId, patientId, body.wardId, bedId]
+        `INSERT INTO admissions (id, hospital_id, encounter_id, patient_id, admitting_ward_id, current_ward_id, bed_id, started_at, status, file_no)
+         VALUES ($1, $2, $3, $4, $5, $5, $6, now(), 'active', $7)`,
+        [admissionId, hospitalId, encounterId, patientId, body.wardId, bedId, fileNo]
       );
       if (body.diagnosis) {
         await q.query(
@@ -886,7 +962,7 @@ export async function buildApp(db: Db, config: AppConfig): Promise<FastifyInstan
         hospitalId, actorUserId: actor.id, action: "chart_ensure", entityType: "admission", entityId: admissionId,
         summary: `Internare ${body.pathway} pe foaia clinică.`
       });
-      return { patientId, encounterId, admissionId, bedId, reused: false, pathway: body.pathway };
+      return { patientId, encounterId, admissionId, bedId, reused: false, pathway: body.pathway, fileNo };
     });
   });
 
@@ -894,22 +970,47 @@ export async function buildApp(db: Db, config: AppConfig): Promise<FastifyInstan
     const actor = requireUser(request);
     const hospitalId = requireHospital(request);
     const encounterId = param(request, "id");
-    const body = z.object({ summary: z.string().min(1).max(8000) }).parse(request.body);
+    const body = z.object({
+      summary: z.string().min(50).max(8000),
+      dischargeStatus: z.enum(["vindecat", "ameliorat", "stationar", "agravat", "decedat"]),
+      dischargeType: z.enum(["externat", "la_cerere", "transfer_interspitalicesc", "deces"]),
+      dxCode: z.string().max(40).optional(),
+      dxDisplay: z.string().min(3).max(240),
+      secondary: z.string().max(800).optional(),
+      recommendations: z.string().min(10).max(4000)
+    }).parse(request.body);
     return db.tx(async (q) => {
       const encounter = await one<{ patient_id: string; status: string; class: string }>(
         q, "SELECT patient_id, status, class FROM encounters WHERE id = $1 AND hospital_id = $2", [encounterId, hospitalId]
       );
       if (encounter.status !== "in_progress" || encounter.class !== "inpatient") fail(409, "Doar o internare deschisă poate fi externată.");
-      await q.query("UPDATE encounters SET status = 'finished', ended_at = now() WHERE id = $1 AND hospital_id = $2", [encounterId, hospitalId]);
+      await q.query(
+        `UPDATE encounters SET status = 'finished', ended_at = now(),
+         discharge_status = $3, discharge_type = $4, discharge_dx_code = $5, discharge_dx_display = $6
+         WHERE id = $1 AND hospital_id = $2`,
+        [encounterId, hospitalId, body.dischargeStatus, body.dischargeType, body.dxCode ?? null, body.dxDisplay]
+      );
       await q.query("UPDATE admissions SET status = 'ended', ended_at = now() WHERE encounter_id = $1 AND hospital_id = $2", [encounterId, hospitalId]);
+      const letterBody = [
+        `Diagnostic: ${body.dxDisplay}${body.dxCode ? ` (${body.dxCode})` : ""}`,
+        body.secondary ? `Secundare: ${body.secondary}` : "",
+        `Stare: ${body.dischargeStatus}`,
+        `Tip: ${body.dischargeType}`,
+        "",
+        "Epicriză:",
+        body.summary,
+        "",
+        "Recomandări:",
+        body.recommendations
+      ].filter(Boolean).join("\n");
       const documentId = newId();
       await q.query(
         `INSERT INTO documents (id, hospital_id, patient_id, encounter_id, doc_type, status, version, title, body, source, author_user_id, finalized_at)
          VALUES ($1, $2, $3, $4, 'discharge_letter', 'final', 1, 'Scrisoare medicală', $5, 'clinical_record', $6, now())`,
-        [documentId, hospitalId, encounter.patient_id, encounterId, body.summary, actor.id]
+        [documentId, hospitalId, encounter.patient_id, encounterId, letterBody, actor.id]
       );
       await writeAudit(q, { hospitalId, actorUserId: actor.id, action: "discharge", entityType: "encounter", entityId: encounterId, summary: "Externare și scrisoare finală." });
-      return { patientId: encounter.patient_id, documentId };
+      return { patientId: encounter.patient_id, documentId, code: "ok" };
     });
   });
 
@@ -1378,20 +1479,21 @@ export async function buildApp(db: Db, config: AppConfig): Promise<FastifyInstan
     nomenclatoare: z.record(z.array(z.unknown())).optional(),
     hospital: z.unknown().optional(),
     integrations: z.unknown().optional(),
-    synthetic: z.boolean().optional()
+    synthetic: z.boolean().optional(),
+    expectedVersion: z.number().int().positive().optional()
   });
 
   route("get", "/api/collection", undefined, async (request) => {
     const user = requireUser(request);
     if (!user.permissions.has("chart.read") && !user.permissions.has("structure.read")) fail(403, "Acces refuzat.");
     const hospitalId = requireHospital(request);
-    const rows = await db.query<{ document: unknown; synthetic: boolean; updated_at: string }>(
-      "SELECT document, synthetic, updated_at FROM collection_workspaces WHERE hospital_id = $1",
+    const rows = await db.query<{ document: unknown; synthetic: boolean; updated_at: string; version: number }>(
+      "SELECT document, synthetic, updated_at, COALESCE(version, 1) AS version FROM collection_workspaces WHERE hospital_id = $1",
       [hospitalId]
     );
     const row = rows[0];
-    if (!row) return { document: null, synthetic: true, updatedAt: null };
-    return { document: row.document, synthetic: row.synthetic, updatedAt: row.updated_at };
+    if (!row) return { document: null, synthetic: true, updatedAt: null, version: 0 };
+    return { document: row.document, synthetic: row.synthetic, updatedAt: row.updated_at, version: Number(row.version) || 1 };
   });
 
   route("put", "/api/collection", undefined, async (request) => {
@@ -1400,12 +1502,27 @@ export async function buildApp(db: Db, config: AppConfig): Promise<FastifyInstan
     const hospitalId = requireHospital(request);
     const body = collectionDocument.parse(request.body);
     const synthetic = body.synthetic !== false;
+    const expected = body.expectedVersion;
+    const current = await db.query<{ version: number }>(
+      "SELECT COALESCE(version, 1) AS version FROM collection_workspaces WHERE hospital_id = $1",
+      [hospitalId]
+    );
+    if (expected != null && current[0] && Number(current[0].version) !== expected) {
+      throw Object.assign(new Error("Alt utilizator a salvat între timp. Reîncărcați și aplicați din nou modificările."), {
+        statusCode: 409,
+        code: "stale_version"
+      });
+    }
+    const nextVersion = current[0] ? Number(current[0].version) + 1 : 1;
+    const payload = { ...body };
+    delete (payload as { expectedVersion?: number }).expectedVersion;
     await db.query(
-      `INSERT INTO collection_workspaces (hospital_id, document, synthetic, updated_by, updated_at)
-       VALUES ($1, $2::jsonb, $3, $4, now())
+      `INSERT INTO collection_workspaces (hospital_id, document, synthetic, updated_by, updated_at, version)
+       VALUES ($1, $2::jsonb, $3, $4, now(), $5)
        ON CONFLICT (hospital_id) DO UPDATE
-       SET document = EXCLUDED.document, synthetic = EXCLUDED.synthetic, updated_by = EXCLUDED.updated_by, updated_at = now()`,
-      [hospitalId, JSON.stringify(body), synthetic, user.id]
+       SET document = EXCLUDED.document, synthetic = EXCLUDED.synthetic, updated_by = EXCLUDED.updated_by,
+           updated_at = now(), version = EXCLUDED.version`,
+      [hospitalId, JSON.stringify(payload), synthetic, user.id, nextVersion]
     );
     await db.tx((q) => writeAudit(q, {
       hospitalId,
@@ -1413,9 +1530,9 @@ export async function buildApp(db: Db, config: AppConfig): Promise<FastifyInstan
       action: "collection_save",
       entityType: "collection_workspace",
       entityId: hospitalId,
-      summary: synthetic ? "Spațiul de colectare a fost salvat. Conține date de exercițiu." : "Spațiul de colectare a fost salvat."
+      summary: synthetic ? "Spațiul de colectare a fost salvat. Conține date de exercițiu." : `Spațiul de colectare salvat (v${nextVersion}).`
     }));
-    return { ok: true, synthetic };
+    return { ok: true, synthetic, version: nextVersion };
   });
 
   route("delete", "/api/collection", undefined, async (request) => {

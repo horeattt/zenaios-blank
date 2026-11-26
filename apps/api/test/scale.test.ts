@@ -27,7 +27,7 @@ beforeAll(async () => {
   dir = await mkdtemp(join(tmpdir(), "zenaios-scale-"));
   db = await openPglite(dir);
   const applied = await migrate(db);
-  expect(applied).toEqual(["0001_init", "0002_collection", "0003_scale", "0004_pilot", "0005_appointments", "0006_module_config"]);
+  expect(applied).toEqual(["0001_init", "0002_collection", "0003_scale", "0004_pilot", "0005_appointments", "0006_module_config", "0007_flow_stability"]);
   app = await buildApp(db, config);
 });
 

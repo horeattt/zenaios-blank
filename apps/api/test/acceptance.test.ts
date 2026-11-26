@@ -30,7 +30,7 @@ beforeAll(async () => {
   db = await openPglite(dir);
   const first = await migrate(db);
   const second = await migrate(db);
-  expect(first).toEqual(["0001_init", "0002_collection", "0003_scale", "0004_pilot", "0005_appointments", "0006_module_config"]);
+  expect(first).toEqual(["0001_init", "0002_collection", "0003_scale", "0004_pilot", "0005_appointments", "0006_module_config", "0007_flow_stability"]);
   expect(second).toEqual([]);
   app = await buildApp(db, config);
 });
@@ -107,7 +107,7 @@ describe("ZenAIOS Hospital OS", () => {
       method: "POST",
       url: `/api/admissions/${admission.admissionId}/transfer`,
       headers: { cookie: cookieA },
-      payload: { wardId: structureA2.wardId, bedId: structureA2.bedId }
+      payload: { wardId: structureA2.wardId, bedId: structureA2.bedId, note: "Transfer pentru continuare tratament pe Medicină internă." }
     });
     expect(transfer.statusCode).toBe(200);
     expect((transfer.json() as { patientId: string }).patientId).toBe(presentation.patientId);
@@ -164,7 +164,13 @@ describe("ZenAIOS Hospital OS", () => {
       method: "POST",
       url: `/api/encounters/${admission.encounterId}/discharge`,
       headers: { cookie: cookieA },
-      payload: { summary: "Externare după corectarea potasemiei." }
+      payload: {
+        summary: "Externare după corectarea potasemiei. Evoluție favorabilă, fără complicații acute la externare.",
+        dischargeStatus: "ameliorat",
+        dischargeType: "externat",
+        dxDisplay: "Hiperkaliemie corectată",
+        recommendations: "Control ionogramă la medicul de familie în 7 zile."
+      }
     });
     expect(discharged.statusCode).toBe(200);
     const documentId = (discharged.json() as { documentId: string }).documentId;
