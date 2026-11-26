@@ -4,7 +4,8 @@ import { hydrateBoardOccupancy as hydrateBoardMod, syncStructureToApi as syncStr
 import { ensureAndLoadChart, saveClinicalNote } from "./chart.js";
 import { NOMENCLATOR_CATALOG, seedNomenclatoare, nomOptions, catalogOf } from "./nomenclatoare.js";
 
-const KEY = "zena-spital-v5";
+const KEY = "zena-spital-blank-v1";
+const BLANK_INSTALL = true;
 var live = false;
 var apiMe = null;
 const KIT = [["Mănuși sterile", 1], ["Comprese sterile", 2]];
@@ -46,11 +47,13 @@ function fillSupplyGroups(wards) {
 function ensureConfig() {
   let dirty = false;
   if (!state.hospital) {
-    state.hospital = { name: "Spital demonstrație", code: "DEMO", country: "România", timezone: "Europe/Bucharest", locale: "ro-RO" };
+    state.hospital = BLANK_INSTALL
+      ? { name: "Spital test (gol)", code: "TEST", country: "România", timezone: "Europe/Bucharest", locale: "ro-RO" }
+      : { name: "Spital demonstrație", code: "DEMO", country: "România", timezone: "Europe/Bucharest", locale: "ro-RO" };
     dirty = true;
   }
   if (!state.integrations) {
-    state.integrations = { openaiKey: "", openaiModel: "gpt-4o-mini", openaiBase: "https://api.openai.com/v1", aiLetter: true, aiAlerts: true, fhir: "", lis: "", pacs: "", adt: "" };
+    state.integrations = { openaiKey: "", openaiModel: "gpt-4o-mini", openaiBase: "https://api.openai.com/v1", aiLetter: !BLANK_INSTALL, aiAlerts: !BLANK_INSTALL, fhir: "", lis: "", pacs: "", adt: "" };
     dirty = true;
   }
   return dirty;
@@ -116,10 +119,10 @@ function fillChart(wards) {
   });
   return dirty;
 }
-const seeded = fillArchive(state.wards);
-const profiles = fillProfiles(state.wards);
+const seeded = BLANK_INSTALL ? false : fillArchive(state.wards);
+const profiles = BLANK_INSTALL ? false : fillProfiles(state.wards);
 const groups = fillSupplyGroups(state.wards);
-const chart = fillChart(state.wards);
+const chart = BLANK_INSTALL ? false : fillChart(state.wards);
 if (seeded || profiles || groups || ensureConfig() || chart) persist();
 let ui = { page: "home", wardId: null, patientId: null, tab: "sumar", filter: "all", query: "", bed: null, draft: null, view: "paturi", gest: "materiale", medQuery: "", magQuery: "", magClass: "", studyQuery: "", studyKind: "analize", drill: null, period: "azi", staffCat: "medici", deptId: null, labGroup: "uzuale", holdMed: null, doctor: null, compose: false, sheetPage: 0, calOpen: false, calMonth: "", rangeFrom: "", rangeTo: "", zenaOpen: false, zenaThread: [], zenaDraft: "", aiHeard: "", aiReply: "", aiDemo: 0, letterDraft: null, supClass: "Toate", imgKind: "", histOpen: false, histQuery: "", histDoc: "", openAlerts: [], adminIn: true, wardScopeIds: null, hospitalWideAccess: true, apiBoardTotal: 0, platformNote: "", adminTab: "ops", pilotCache: null, flowKind: "patient", wardMenuOpen: false, apptDay: "", apptPractitioner: "", admitStep: 0, admitDraft: null };
 let toastTimer;
@@ -132,7 +135,19 @@ function loadState() {
       const data = JSON.parse(raw);
       if (data && Array.isArray(data.wards) && Array.isArray(data.people) && Array.isArray(data.departments)) return data;
     }
-  } catch (err) { /* datele demo se regenerează */ }
+  } catch (err) { /* instalare goală */ }
+  if (BLANK_INSTALL) {
+    return {
+      wards: seedBlankWards(),
+      people: [],
+      departments: [],
+      gestTypes: seedGestTypes(),
+      nomenclatoare: seedNomenclatoare(),
+      hospital: { name: "Spital test (gol)", code: "TEST", country: "România", timezone: "Europe/Bucharest", locale: "ro-RO" },
+      integrations: { openaiKey: "", openaiModel: "gpt-4o-mini", openaiBase: "https://api.openai.com/v1", aiLetter: false, aiAlerts: false, fhir: "", lis: "", pacs: "", adt: "" },
+      synthetic: true
+    };
+  }
   return { wards: seedWards(), people: seedPeople(), departments: seedDepartments(), gestTypes: seedGestTypes(), nomenclatoare: seedNomenclatoare() };
 }
 let saveTimer = 0;
@@ -542,7 +557,24 @@ function defaultMeds() {
   ];
   return rows.map((r, i) => ({ id: "m" + i, group: r[0], name: r[1], dose: r[2], unit: r[3], qty: r[4], min: r[5] }));
 }
+function seedBlankWards() {
+  const specs = [
+    { id: "cardio", name: "Cardiologie", chief: "Dr. Popescu Ion", nurse: "Popa Adriana", physicians: ["Dr. Popescu Ion", "Dr. Luca Andrei"], focus: "cardio", tag: "CAR", serial: 10 },
+    { id: "chir", name: "Chirurgie generală", chief: "Dr. Andrei Cosmin", nurse: "Ioana Cristina", physicians: ["Dr. Andrei Cosmin", "Dr. Barbu Mihai"], focus: "surg", tag: "CHI", serial: 40 },
+    { id: "med", name: "Medicină internă", chief: "Dr. Ionescu Ana", nurse: "Popa Adriana", physicians: ["Dr. Ionescu Ana", "Dr. Stan Radu"], focus: "med", tag: "MED", serial: 70 }
+  ];
+  return specs.map((spec, idx) => {
+    const staff = defaultStaff(spec);
+    return {
+      id: spec.id, name: spec.name, chief: spec.chief, nurse: spec.nurse, physicians: spec.physicians, focus: spec.focus,
+      staff, duty: defaultDuty(staff), stock: defaultStock(idx), meds: defaultMeds(), bedCount: BEDS, closed: [],
+      patients: [],
+      discharged: []
+    };
+  });
+}
 function seedWards() {
+  if (BLANK_INSTALL) return seedBlankWards();
   const specs = [
     { id: "cardio", name: "Cardiologie", chief: "Dr. Popescu Ion", nurse: "Popa Adriana", physicians: ["Dr. Popescu Ion", "Dr. Luca Andrei"], focus: "cardio", tag: "CAR", serial: 10 },
     { id: "chir", name: "Chirurgie generală", chief: "Dr. Andrei Cosmin", nurse: "Ioana Cristina", physicians: ["Dr. Andrei Cosmin", "Dr. Barbu Mihai"], focus: "surg", tag: "CHI", serial: 40 },
@@ -873,7 +905,7 @@ function navHtml() {
       <button class="linkish" type="button" data-act="ops-lis">Trimite LIS</button>
       <button class="linkish" type="button" data-act="ops-backup">Copie de rezervă</button>
       <a class="linkish" href="/panou.html">Panou tehnic</a>
-      <button class="linkish" type="button" data-act="reset">Resetează demonstrația</button>
+      <button class="linkish" type="button" data-act="reset">${BLANK_INSTALL ? "Resetează instalarea goală" : "Resetează demonstrația"}</button>
     </div>`;
 }
 
