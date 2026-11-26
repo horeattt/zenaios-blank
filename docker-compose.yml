@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: zenaios
+      POSTGRES_PASSWORD: change-me
+      POSTGRES_DB: zenaios
+    volumes:
+      - zenaios-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zenaios -d zenaios"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  api:
+    build: .
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://zenaios:change-me@db:5432/zenaios
+      PORT: 3000
+      AI_DATA_KEY: ${AI_DATA_KEY:-}
+      PROVISION_TOKEN: ${PROVISION_TOKEN:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-0}
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  zenaios-db:

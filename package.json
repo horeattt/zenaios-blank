@@ -1,0 +1,22 @@
+{
+  "name": "zenaios-hospital-os",
+  "private": true,
+  "version": "0.4.0",
+  "description": "ZenAIOS Hospital OS — monolit modular pentru spital, cu PostgreSQL și asistentul Zena.",
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @zenaios/api",
+    "dev:web": "npm run dev -w @zenaios/web",
+    "test": "npm test -w @zenaios/api",
+    "typecheck": "npm run typecheck -w @zenaios/api && npm run typecheck -w @zenaios/web",
+    "build": "npm run build -w @zenaios/web && npm run build -w @zenaios/api",
+    "setup": "npm run setup -w @zenaios/api",
+    "backup": "npm run backup -w @zenaios/api"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
